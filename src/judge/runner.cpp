@@ -58,19 +58,18 @@ RunResult Runner::run(const std::string& bin_path,
     }
 
     if (pid == 0) {
-        // child
-        // apply resource limits
+        // 子进程
+        // 设置资源限制
         rlim_t cpu_seconds = static_cast<rlim_t>(limits.time_limit_ms / 1000) + 1;
         set_limit(RLIMIT_CPU, cpu_seconds);
-        // Heap-only memory cap. RLIMIT_AS would also constrain the binary +
-        // shared library mappings (libc/libstdc++/libm are typically > 16 MB
-        // on a glibc system) and a streaming solution that doesn't touch the
-        // heap would still fail to start.
+        // 仅限制堆内存。RLIMIT_AS 同时还会约束二进制和共享库的映射
+        // (glibc 系统上 libc/libstdc++/libm 通常 > 16 MB),即便一个完全
+        // 不碰堆的流式解法也会因此无法启动。
         set_limit(RLIMIT_DATA,
                   static_cast<rlim_t>(limits.memory_limit_mb) * 1024 * 1024);
-        // As a backstop, also cap RLIMIT_AS at a generous multiple of the
-        // heap budget so that an mmap-based allocator (large allocations use
-        // mmap, not brk) still trips before it can swap the host to death.
+        // 作为兜底,再把 RLIMIT_AS 设为堆预算的若干倍,这样基于 mmap
+        // 的分配器(大块分配走 mmap 而不是 brk)也会在把主机换出去
+        // 之前先被触发。
         set_limit(RLIMIT_AS,
                   static_cast<rlim_t>(limits.memory_limit_mb) * 8 * 1024 * 1024);
         set_limit(RLIMIT_FSIZE,
@@ -79,15 +78,15 @@ RunResult Runner::run(const std::string& bin_path,
 
         if (dup2(in_fd, STDIN_FILENO) < 0) _exit(127);
         if (dup2(out_fd, STDOUT_FILENO) < 0) _exit(127);
-        // Silence the child's stderr so std::bad_alloc / SIGABRT messages
-        // (deliberately triggered by MLE / RE test cases) don't leak into
-        // the server log. The runner still surfaces the runtime status.
+        // 静默子进程的 stderr,避免 std::bad_alloc / SIGABRT 等信息
+        // (由 MLE / RE 用例刻意产生)泄漏到服务端日志。
+        // Runner 仍然会上报运行时状态。
         int devnull = open("/dev/null", O_WRONLY);
         if (devnull >= 0) { dup2(devnull, STDERR_FILENO); close(devnull); }
         close(in_fd);
         close(out_fd);
 
-        // new session so any stray signals stay in this group
+        // 新建会话,确保任何游离信号都留在本进程组内
         setsid();
 
         char* const argv[] = {
@@ -98,7 +97,7 @@ RunResult Runner::run(const std::string& bin_path,
         _exit(127);
     }
 
-    // parent
+    // 父进程
     close(in_fd);
     close(out_fd);
 
@@ -128,7 +127,7 @@ RunResult Runner::run(const std::string& bin_path,
         if (r == pid) { got_status = true; break; }
         if (r < 0) {
             if (errno == ECHILD) {
-                // already reaped (e.g. SIGCHLD race); continue polling.
+                // 已被回收(例如 SIGCHLD 竞争),继续轮询。
                 usleep(5000);
                 continue;
             }
@@ -146,17 +145,14 @@ RunResult Runner::run(const std::string& bin_path,
         result.mem_kb = ru.ru_maxrss;  // KB on Linux
     }
 
-    // Memory accounting. We treat MLE as "the process was killed because it
-    // tried to use far more memory than its budget allowed". A clean exit
-    // (WIFEXITED && exit_code == 0) is always Ok, even if ru_maxrss is
-    // slightly over the budget — modern glibc runtime + libstdc++ can easily
-    // touch 16-30 MB just from text/rodata, so a tight RSS budget on its own
-    // is a false positive. We only call MLE when the process died from a
-    // signal (which is how RLIMIT_DATA / RLIMIT_AS excess surfaces) AND it
-    // was over budget AND it had not yet burned a significant chunk of its
-    // CPU budget — the latter is the heuristic that separates a true OOM
-    // crash from a TLE-kill that happens to report high RSS because the
-    // process had time to fault in libraries.
+    // 内存统计。把 MLE 解释为:"进程被杀掉,是因为它试图使用的内存远远
+    // 超出了预算"。正常退出(WIFEXITED && exit_code == 0)始终视为 Ok,
+    // 即便 ru_maxrss 略超预算 —— 现代 glibc 运行时 + libstdc++ 仅靠
+    // text/rodata 就会轻松触及 16-30 MB,因此仅看 RSS 容易误判。
+    // 只有当进程因信号被杀(这是 RLIMIT_DATA / RLIMIT_AS 触发的表现),
+    // 同时确实超出预算,并且还没消耗掉相当一部分 CPU 时间时,
+    // 才将其归为 MLE;这条经验规则可以把真正的 OOM 崩溃和因加载库
+    // 而恰好 RSS 偏高的 TLE 杀掉区分开。
     long mem_limit_kb = static_cast<long>(limits.memory_limit_mb) * 1024L;
     bool rss_over = (mem_limit_kb > 0) && (result.mem_kb > mem_limit_kb);
     bool cpu_quick_kill = (result.time_ms <
@@ -165,15 +161,15 @@ RunResult Runner::run(const std::string& bin_path,
     if (WIFSIGNALED(status)) {
         result.signal = WTERMSIG(status);
         if (result.signal == SIGXCPU || result.signal == SIGKILL) {
-            // could be time-limit or wall-timeout kill
+            // 可能是超时或墙钟超时触发的杀进程
             struct stat st{};
             if (stat(stdout_path.c_str(), &st) == 0) {
                 result.output_bytes = static_cast<uint64_t>(st.st_size);
             }
-            // Distinguish MLE from TLE when SIGKILLed:
-            //   - TLE: process ran close to its CPU budget before SIGKILL
-            //   - MLE: process was killed quickly despite over-budget RSS
-            // For SIGXCPU it's always TLE (CPU limit tripped first).
+            // 在 SIGKILL 情形下区分 MLE 与 TLE:
+            //   - TLE:被 SIGKILL 时已接近 CPU 预算
+            //   - MLE:被 SIGKILL 时进程很快被杀,且 RSS 超额
+            // SIGXCPU 则一律视为 TLE(先触发了 CPU 上限)。
             if (result.signal == SIGKILL && rss_over && cpu_quick_kill) {
                 result.status = RunStatus::MemoryLimitExceeded;
             } else {
@@ -183,9 +179,9 @@ RunResult Runner::run(const std::string& bin_path,
         }
         if ((result.signal == SIGABRT || result.signal == SIGSEGV ||
              result.signal == SIGBUS) && rss_over && cpu_quick_kill) {
-            // malloc failed → std::bad_alloc → uncaught → terminate → SIGABRT
-            // (or vector<T>(n) with null pointer UB → SIGSEGV). Either way,
-            // the rusage tells us we were over budget.
+            // malloc 失败 → std::bad_alloc → 未捕获 → terminate → SIGABRT
+            // (或 vector<T>(n) 解引用空指针的 UB → SIGSEGV)。
+            // 总之从 rusage 可以看出确实超额了。
             result.status = RunStatus::MemoryLimitExceeded;
             return result;
         }
@@ -199,10 +195,9 @@ RunResult Runner::run(const std::string& bin_path,
             result.status = RunStatus::RuntimeError;
             return result;
         }
-        // Clean exit with exit 0 is accepted regardless of RSS — RSS measures
-        // resident set, which includes library text/rodata that is not under
-        // the user's control. A streaming solution that uses no heap will
-        // still report RSS in the same ballpark as a heavy solution.
+        // exit 0 的正常退出不受 RSS 影响 —— RSS 度量的是常驻集,
+        // 其中包含用户无法控制的库代码 text/rodata。
+        // 完全不碰堆的流式解法,其 RSS 与"重型"解法也基本相当。
         result.status = RunStatus::Ok;
         return result;
     }

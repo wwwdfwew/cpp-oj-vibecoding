@@ -21,16 +21,16 @@ class SessionManager {
 public:
     explicit SessionManager(db::MySQLClient& db);
 
-    // Generate a new session for user_id; returns the token (64-char hex).
+    // 为指定 user_id 创建新会话,返回 token(64 位十六进制字符串)。
     std::string create(int user_id, int ttl_seconds = 7 * 24 * 3600);
 
-    // Look up a session by token; returns nullopt if missing or expired.
+    // 按 token 查询会话;不存在或已过期时返回 nullopt。
     std::optional<Session> lookup(const std::string& token);
 
-    // Delete a session by token.
+    // 按 token 删除会话。
     void destroy(const std::string& token);
 
-    // Best-effort cleanup of expired rows.
+    // 尽力而为地清理已过期的会话记录。
     void purge_expired();
 
     static std::string random_token();

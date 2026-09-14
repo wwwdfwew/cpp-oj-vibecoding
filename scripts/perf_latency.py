@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SPEC §3 Phase 6.7 — performance / latency check.
+对应 SPEC §3 Phase 6.7 —— 性能 / 延迟测试。
 
-Submits a correct solution to the "Sum of N" problem (id=8) repeatedly and
-measures end-to-end latency (HTTP request + compile + run all 3 cases). Reports
-P50 / P95 / P99 and asserts P95 <= 5 s, per SPEC §1.4 / §4.2 N-01.
+向"Sum of N"题目(id=8)反复提交正确的解法,并度量端到端延迟
+(HTTP 请求 + 编译 + 跑全部 3 个用例)。报告 P50 / P95 / P99,并断言
+P95 <= 5 秒(对应 SPEC §1.4 / §4.2 N-01)。
 
-Usage:
+用法:
   python3 scripts/perf_latency.py [--base URL] [--runs N] [--problem-id N]
                                   [--time-limit-ms N]
 """
@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 
 
-# Same correct Sum-of-N code we use in the smoke tests.
+# 与冒烟测试中相同的 Sum of N 正确解法。
 CODE = """\
 #include <bits/stdc++.h>
 using namespace std;
@@ -59,7 +59,7 @@ def submit(base, problem_id, code):
 
 
 def percentile(values, p):
-    """Return the p-th percentile (0..100) using linear interpolation."""
+    """使用线性插值,返回第 p 个百分位数(0..100)。"""
     if not values:
         return 0.0
     s = sorted(values)
@@ -81,7 +81,7 @@ def main():
 
     base = args.base.rstrip("/")
 
-    # Warmup: prime the page cache + MySQL connection pool.
+    # 预热:让页面缓存 + MySQL 连接池进入工作状态。
     for i in range(args.warmup):
         ms, payload = submit(base, args.problem_id, CODE)
         if payload.get("status") != "AC":

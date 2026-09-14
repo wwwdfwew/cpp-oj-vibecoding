@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-SPEC §3 Phase 6.1 — seed 3 OJ problems that exercise AC / WA / CE / TLE / MLE / RE.
+对应 SPEC §3 Phase 6.1 —— 种子 3 道 OJ，覆盖 AC / WA / CE / TLE / MLE / RE。
 
-Each problem is designed so that with appropriate user submissions we can observe
-each judge status at least once:
-  - A+B           → AC, WA, CE, RE  (warm-up)
-  - Sum of N      → AC, TLE         (large N; O(n^2) times out)
-  - Maximum of N  → AC, MLE, RE     (tight memory; vector<int>(N) OOMs)
+每道题都经过精心设计，使得配合恰当的用户提交,我们可以至少观察到
+每一种判题状态:
+  - A+B           → AC、WA、CE、RE  (热身题)
+  - N 个数的和    → AC、TLE         (N 很大时 O(N²) 会超时)
+  - N 个中的最大值 → AC、MLE、RE     (内存紧;vector<int>(N) 会 OOM)
 
-Usage:
+用法:
   python3 scripts/seed_problems.py [--base http://localhost:8088]
                                   [--admin admin] [--password admin123]
 """
@@ -79,18 +79,18 @@ def create_problem(opener, base, problem):
 
 
 def gen_sum_n_large_input(n):
-    """Single-line space-separated string of n copies of 1."""
+    """单行、空格分隔的 n 个 1。"""
     return " ".join(["1"] * n) + "\n"
 
 
 def gen_max_n_large_input(n):
-    """Single-line space-separated string of n copies of 7 with one 999 at end."""
+    """单行、空格分隔的 n 个 7,末尾再加一个 999。"""
     parts = ["7"] * (n - 1) + ["999"]
     return " ".join(parts) + "\n"
 
 
 def problems():
-    # ----- Problem 1: A+B (warm-up) -----
+    # ----- 题 1:A+B (热身) -----
     p1 = {
         "title": "A+B",
         "description": (
@@ -110,9 +110,9 @@ def problems():
         ],
     }
 
-    # ----- Problem 2: Maximum of N (TLE trigger) -----
-    # Includes a large N case where an O(N^2) pairwise comparison finishes but
-    # past the time limit; the intended O(N) scan stays well under budget.
+    # ----- 题 2:N 个数中的最大值 (触发 TLE) -----
+    # 包含 N 很大的用例:O(N²) 的两两比较会超出时间限制,
+    # 而 O(N) 的扫描则在预算之内。
     p2 = {
         "title": "N 个数中的最大值",
         "description": (
@@ -136,7 +136,7 @@ def problems():
         ],
     }
 
-    # ----- Problem 3: Sum of N (MLE trigger) -----
+    # ----- 题 3:N 个数的和 (触发 MLE) -----
     # 内存上限较紧(16 MB);逐个累加的流式解法可以通过,
     # 但一次性把所有数塞进 vector<int> 会在最大数据点触发 MLE。
     p3 = {
@@ -178,7 +178,7 @@ def main():
     seeds = problems()
     seed_titles = {p["title"] for p in seeds}
 
-    # Wipe any existing seed problems so the script is idempotent.
+    # 先清除现有的同标题种子题,确保脚本可重复执行。
     print("[seed] removing existing seed problems (if any)…")
     for existing in list_problems(opener, args.base):
         if existing["title"] in seed_titles:

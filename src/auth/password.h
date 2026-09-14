@@ -5,7 +5,7 @@
 
 namespace oj::auth {
 
-// SPEC §2.3: sha256(salt || password)
+// 对应 SPEC §2.3:sha256(salt || password)
 std::string sha256_hex(const std::string& data);
 std::string random_salt_hex(size_t bytes = 16);
 

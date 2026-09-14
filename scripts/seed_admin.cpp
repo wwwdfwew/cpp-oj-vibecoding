@@ -1,6 +1,6 @@
-// SPEC §3 Phase 1.5 — seed admin user with sha256(salt || password)
-// Usage: seed_admin <username> <password> <role>
-// Output: SQL INSERT statement on stdout
+// 对应 SPEC §3 Phase 1.5 —— 用 sha256(salt || password) 种子管理员账号
+// 用法:seed_admin <username> <password> <role>
+// 输出:SQL INSERT 语句(写到 stdout)
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 

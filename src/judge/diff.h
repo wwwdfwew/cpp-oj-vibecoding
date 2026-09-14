@@ -7,12 +7,12 @@ namespace oj::judge {
 
 class Diff {
 public:
-    // Compare expected vs actual.
-    // Rules: strip '\r', ignore trailing blank lines, exact compare per line.
+    // 比较期望输出与实际输出。
+// 规则:去除 '\r',忽略末尾空行,逐行精确比较。
     static bool compare(const std::string& expected,
                         const std::string& actual);
 
-    // Normalize: strip '\r', trim trailing blank lines.
+    // 规范化:去除 '\r',并去掉末尾的空行。
     static std::string normalize(const std::string& s);
 };
 

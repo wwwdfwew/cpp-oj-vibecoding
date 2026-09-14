@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 """
-SPEC §3 Phase 6.8 — security / sandbox test.
+对应 SPEC §3 Phase 6.8 —— 安全 / 沙箱测试。
 
-Each scenario posts a malicious or resource-abusive submission and asserts
-that:
-  - the OJ reports a non-zero (failure) status — never AC,
-  - the server log shows no exceptions / crashes, and
-  - targeted side-effects (e.g. /etc/passwd being read into the OJ process,
-    a child surviving, the host's tmp tree being wiped) do NOT happen.
+每个场景都提交一段恶意或耗资源的代码,并断言:
+  - OJ 返回失败状态(绝不是 AC),
+  - 服务端日志没有异常 / 崩溃,
+  - 副作用(如把 /etc/passwd 读进 OJ 进程、子进程残留、
+    宿主 /tmp 被清空)均未发生。
 
-Scenarios:
-  1. Read /etc/passwd and print it as the answer.
-     Expected: child fails or output doesn't match; status != AC.
-  2. Fork bomb via fork() loop.
-     Expected: capped by RLIMIT_NPROC=1 → child dies (RuntimeError / TLE).
-  3. system("rm -rf /") via std::system.
-     Expected: cmd either rejected by glibc (no shell) or returns 127 → RE.
-  4. open a server socket on a privileged port.
-     Expected: refused → RuntimeError (exit!=0).
-  5. Cause OOM with vector (re-uses MLE signal).
-     Expected: Memory Limit Exceeded.
-  6. Infinite loop (re-uses TLE signal).
-     Expected: Time Limit Exceeded.
+场景:
+  1. 读取 /etc/passwd 并作为答案打印。
+     期望:子进程失败或输出不匹配;status != AC。
+  2. 通过 fork() 循环实现 fork bomb。
+     期望:被 RLIMIT_NPROC=1 截断 → 子进程退出(RuntimeError / TLE)。
+  3. 通过 std::system 跑 system("rm -rf /")。
+     期望:命令被 glibc 拒绝(无 shell)或返回 127 → RE。
+  4. 在特权端口打开服务套接字。
+     期望:被拒 → RuntimeError(exit != 0)。
+  5. 用 vector 触发 OOM(复用 MLE 信号)。
+     期望:Memory Limit Exceeded。
+  6. 死循环(复用 TLE 信号)。
+     期望:Time Limit Exceeded。
 """
 import argparse
 import json
@@ -33,7 +32,7 @@ import urllib.error
 import urllib.request
 
 
-# Use Sum of N (id=8) as the target problem for malicious code.
+# 用 N 个数的和(id=8)作为恶意代码的目标题。
 DEFAULT_PROBLEM = 8
 
 BASE_URL = os.environ.get("OJ_BASE", "http://localhost:8088")
@@ -80,9 +79,9 @@ int main() {
 
 
 def case_fork_bomb():
-    # RLIMIT_NPROC=1 should prevent the bomb from spawning multiple children.
-    # First fork() returns -1 with EAGAIN; the code prints a message and
-    # returns 0, which the runner sees as a clean exit but a wrong answer.
+    # RLIMIT_NPROC=1 应能阻止 fork bomb 派生出多个子进程。
+    # 第一次 fork() 返回 -1 并给出 EAGAIN;代码打印消息后返回 0,
+    # Runner 会认为这是正常退出但答案不对。
     code = r"""
 #include <bits/stdc++.h>
 using namespace std;
@@ -173,7 +172,7 @@ def main():
     print(f"[sec] target problem: #{pid} '{problem['title']}' "
           f"tl={problem['time_limit_ms']}ms ml={problem['memory_limit_mb']}MB")
 
-    # Snapshot the host's /tmp before to detect any deletions.
+    # 先快照宿主的 /tmp,以便检测是否有删除发生。
     pre_tmp = set(os.listdir("/tmp"))
     print(f"[sec] /tmp before: {len(pre_tmp)} entries")
 
@@ -216,10 +215,10 @@ def main():
         else:
             print(f"      ✗ UNEXPECTED")
 
-    # Side-effect checks.
+    # 副作用检查。
     print("\n[sec] ---- post-checks ----")
 
-    # 1. Server still answering (no crash).
+    # 1. 服务端仍在响应(没有崩溃)。
     try:
         with urllib.request.urlopen(f"{BASE_URL}/api/problems", timeout=5) as r:
             assert r.status == 200
@@ -231,23 +230,21 @@ def main():
         failures.append(f"server unreachable after attacks: {e}")
         print(f"[sec] server unreachable: {e}")
 
-    # 2. /tmp/oj_* leftovers from the test run are cleaned up (the system()
-    #    scenario tries to rm -rf /tmp/should_not_exist_xyz; we only care that
-    #    the OJ temp dirs themselves don't pile up).
+    # 2. /tmp/oj_* 在测试结束后被清理(system() 那个场景会试图 rm -rf
+    #    /tmp/should_not_exist_xyz;我们只关心 OJ 自己的临时目录不堆积)。
     leftover = [p for p in os.listdir("/tmp")
                 if p.startswith("oj_") and os.path.isdir(f"/tmp/{p}")]
     if leftover:
-        # not necessarily a failure — judge cleans per-submit, but a leftover
-        # is worth a warning.
+        # 不一定是失败 —— 判题每次都会清理,但残留值得警告一下。
         print(f"[sec] WARN: {len(leftover)} leftover /tmp/oj_* dirs "
               f"(first few: {leftover[:3]})")
     else:
         print("[sec] /tmp/oj_* dirs clean ✓")
 
-    # 3. The /tmp/should_not_exist_xyz sentinel shouldn't exist (rm -rf
-    #    target was a non-existing dir — system() returns 127 in that case,
-    #    which the runner sees as RuntimeError). We don't actually verify
-    #    deletion because the dir never existed.
+    # 3. 哨兵目录 /tmp/should_not_exist_xyz 不应被创建(rm -rf
+    #    目标本身就不存在 —— 此时 system() 返回 127,
+    #    Runner 将其视为 RuntimeError)。
+    # 由于目录本来就未存在,我们其实没必要再校验删除。
 
     print()
     print(f"[sec] === summary: passes={passes} fails={fails} ===")

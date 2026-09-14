@@ -44,16 +44,16 @@ void register_static_routes(httplib::Server& srv, const std::string& web_root) {
         OJ_WARN("web_root does not exist: " << web_root);
     }
 
-    // 1) Serve files under /static/* from web_root/static (preferred)
+    // 1) 将 /static/* 下的文件从 web_root/static 提供出去(优先)
     fs::path static_dir = root / "static";
     if (fs::exists(static_dir) && fs::is_directory(static_dir)) {
         srv.set_mount_point("/static", static_dir.string());
     }
 
-    // 2) Serve index.html at root and as SPA fallback
+    // 2) 在根路径以及 SPA 回退场景下提供 index.html
     fs::path index_html = root / "index.html";
 
-    // Capture by VALUE so lambdas outliving this function don't dangle.
+    // 按值捕获,确保本函数返回后 lambda 不会悬空。
     auto serve_index = [index_html](httplib::Response& res) {
         if (fs::exists(index_html)) {
             res.set_content(read_text_file(index_html), mime_for(index_html));
@@ -68,8 +68,8 @@ void register_static_routes(httplib::Server& srv, const std::string& web_root) {
         serve_index(res);
     });
 
-    // Catch-all for SPA routes: anything not /api/*, fall back to index.html.
-    // Use ".+" so that "/" is handled by the explicit route above.
+    // SPA 路由的兜底处理:非 /api/* 的请求全部回退到 index.html。
+    // 使用 ".+" 是为了让 "/" 仍然交给上方的显式路由处理。
     srv.Get(".+", [root, serve_index](const httplib::Request& req,
                                       httplib::Response& res) {
         const std::string& p = req.path;

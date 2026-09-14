@@ -1,4 +1,4 @@
--- SPEC §2.3 — cpp-oj-vibecoding schema
+-- 对应 SPEC §2.3 —— cpp-oj-vibecoding 数据库 schema
 CREATE DATABASE IF NOT EXISTS oj DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE oj;
 

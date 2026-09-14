@@ -10,7 +10,7 @@ struct RunLimits {
     int time_limit_ms    = 1000;
     int memory_limit_mb  = 128;
     int output_limit_mb  = 64;
-    int wall_timeout_ms  = 0;  // 0 means auto = time_limit_ms * testcases + buffer
+    int wall_timeout_ms  = 0;  // 0 表示自动 = time_limit_ms * testcases + buffer
 };
 
 enum class RunStatus {

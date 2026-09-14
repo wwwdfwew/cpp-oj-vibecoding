@@ -54,7 +54,7 @@ void register_submit_routes(httplib::Server& srv,
                             db::MySQLClient& db,
                             auth::SessionManager& sm,
                             judge::Judge& judge) {
-  (void)db;  // Judge holds its own reference; db parameter reserved
+  (void)db;  // Judge 内部持有自己的 db 引用,此处保留 db 参数
 
   srv.Post("/api/submit", [&sm, &judge](const httplib::Request& req,
                                        httplib::Response& res) {
@@ -67,7 +67,7 @@ void register_submit_routes(httplib::Server& srv,
       return;
     }
 
-    // limit body size: 64 KiB code + JSON wrapper overhead
+    // 限制请求体大小:64 KiB 代码 + JSON 包装开销
     if (req.body.size() > 128 * 1024) {
       send_json(res, 413,
           JsonValue(JsonObject{{"error", JsonValue("代码过长(超过 64KB)")}}));

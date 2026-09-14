@@ -28,12 +28,12 @@ enum class JudgeStatus { AC, WA };
 
 struct JudgeResult {
     JudgeStatus status = JudgeStatus::WA;
-    std::string message;          // "Wrong Answer" | "Time Limit Exceeded" | ...
-    std::string compile_error;    // populated on compile failure
-    int         failed_case = -1; // -1 if all passed
+    std::string message;          // 形如 "Wrong Answer" | "Time Limit Exceeded" | ...
+    std::string compile_error;    // 编译失败时填充
+    int         failed_case = -1; // 全部通过时为 -1
 };
 
-// Global mutex — serializes judge to keep sandbox resource stable (SPEC §2.5).
+// 全局互斥锁 —— 串行化判题以保证沙箱资源稳定(对应 SPEC §2.5)。
 extern std::mutex g_judge_mu;
 
 class Judge {

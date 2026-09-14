@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# SPEC §3 Phase 1.4 — init OJ database
-# Usage: bash scripts/init_db.sh
-#   Env: OJ_DB_USER (default root), OJ_DB_HOST, OJ_DB_PORT, OJ_ADMIN_USER, OJ_ADMIN_PASS
+# 对应 SPEC §3 Phase 1.4 —— 初始化 OJ 数据库
+# 用法:bash scripts/init_db.sh
+#   环境变量:OJ_DB_USER(默认 root)、OJ_DB_HOST、OJ_DB_PORT、OJ_ADMIN_USER、OJ_ADMIN_PASS
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,8 +13,8 @@ DB_PORT="${OJ_DB_PORT:-3306}"
 ADMIN_USER="${OJ_ADMIN_USER:-admin}"
 ADMIN_PASS="${OJ_ADMIN_PASS:-admin123}"
 
-# Pick mysql invocation. Use `sudo` if running as a normal user trying to
-# connect as 'root' via the unix socket (Ubuntu default auth_socket).
+# 选择 mysql 调用方式。若以普通用户身份尝试通过 unix socket 以 'root'
+# 登录(Ubuntu 默认 auth_socket),则改用 `sudo`。
 MYSQL_CMD=(mysql)
 if [[ "${DB_USER}" == "root" && -z "${OJ_DB_PASS:-}" ]]; then
     if ! mysql -u"${DB_USER}" -h"${DB_HOST}" -P"${DB_PORT}" -e "SELECT 1" >/dev/null 2>&1; then

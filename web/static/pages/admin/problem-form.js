@@ -1,5 +1,5 @@
 // =============================================================
-// pages/admin/problem-form.js — 创建题目
+// pages/admin/problem-form.js —— 创建题目
 // =============================================================
 
 export async function renderProblemForm(root) {

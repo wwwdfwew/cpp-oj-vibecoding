@@ -7,8 +7,8 @@
 
 namespace oj::routes {
 
-// Mount static file server for `web_root` and a SPA fallback that serves
-// index.html for unknown paths (so pushState routing works).
+// 在 `web_root` 下挂载静态文件服务,并对未知路径回退到 index.html
+// (以保证 pushState 路由正常工作)。
 void register_static_routes(httplib::Server& srv, const std::string& web_root);
 
 }  // namespace oj::routes

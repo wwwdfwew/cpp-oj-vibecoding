@@ -1,5 +1,5 @@
 // =============================================================
-// pages/problem-detail.js — 题目详情 + CodeMirror 6 编辑器 + 提交
+// pages/problem-detail.js —— 题目详情 + CodeMirror 6 编辑器 + 提交
 // =============================================================
 
 const TEMPLATE = `#include <bits/stdc++.h>

@@ -140,7 +140,7 @@ void register_auth_routes(httplib::Server& srv,
         send_json(res, 200, JsonValue(JsonObject{{"ok", JsonValue(true)}}));
     });
 
-    // SPEC: 普通用户注册(MVP 后续开放)
+    // 普通用户注册接口(MVP 后续开放)
     srv.Post("/api/register", [&db, &sm](const httplib::Request& req,
                                          httplib::Response& res) {
         auto body = parse_json(req.body);
@@ -224,7 +224,7 @@ void register_auth_routes(httplib::Server& srv,
                                   {"role", JsonValue("user")}}));
     });
 
-    // GET /api/me — 查询当前会话(用户名 + 角色),未登录返回 401
+    // GET /api/me —— 查询当前会话(用户名 + 角色),未登录返回 401
     srv.Get("/api/me", [&sm](const httplib::Request& req,
                              httplib::Response& res) {
         std::string tok = extract_cookie(req, "SESSION");

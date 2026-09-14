@@ -1,5 +1,5 @@
 // =============================================================
-// CPP-OJ Vibecoding — SPA bootstrap & router
+// CPP-OJ Vibecoding —— SPA 引导与路由
 // =============================================================
 
 const api = {
@@ -96,7 +96,7 @@ const Auth = {
   },
 };
 
-// SVG icons (Heroicons-style, 24x24)
+// SVG 图标(Heroicons 风格,24x24)
 const Icons = {
   list: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>`,
   clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,

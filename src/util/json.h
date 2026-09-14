@@ -30,7 +30,7 @@ public:
 
     Type type() const { return type_; }
 
-    // Internal accessors (used by parse/dump).
+    // 内部访问器(供 parse/dump 使用)。
     bool                       bool_value() const   { return bool_; }
     long long                  int_value()  const   { return int_; }
     double                     double_value() const { return double_; }

@@ -1,5 +1,5 @@
 // =============================================================
-// pages/problem-list.js — 首页 / 题目列表
+// pages/problem-list.js —— 首页 / 题目列表
 // =============================================================
 
 export async function renderProblemList(root) {

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# SPEC §3 Phase 6 — end-to-end submission matrix
-# Exercises AC / WA / CE / TLE / MLE / RE at least once across the 3 seed problems.
+# 对应 SPEC §3 Phase 6 —— 端到端提交矩阵
+# 在 3 道种子题上,至少各触发一次 AC / WA / CE / TLE / MLE / RE。
 #
-# Usage:
-#   bash scripts/e2e_submit_matrix.sh [BASE_URL]   # default http://localhost:8088
+# 用法:
+#   bash scripts/e2e_submit_matrix.sh [BASE_URL]   # 默认 http://localhost:8088
 #
-# Exit code is 0 iff every observed status matches its expected label.
+# 当且仅当每个观察到的状态都匹配其期望标签时,退出码为 0。
 set -u
 BASE="${1:-${OJ_BASE:-http://localhost:8088}}"
 COOKIES="$(mktemp)"
@@ -20,10 +20,9 @@ ok()    { printf "  \033[32m✓\033[0m %s\n" "$*"; PASS=$((PASS+1)); }
 bad()   { printf "  \033[31m✗\033[0m %s\n" "$*"; FAIL=$((FAIL+1)); FAILED_TESTS+=("$*"); }
 
 submit() {
-    # submit <problem_id> <code_body> -> echoes 3 tab-separated fields:
+    # submit <problem_id> <code_body> -> 输出以制表符分隔的 3 个字段:
     #   status<TAB>message<TAB>compile_error_summary
-    # The body is wrapped in the SPEC §2.6 default template so the user only
-    # writes the inside of main().
+    # code_body 会被套用 SPEC §2.6 的默认模板,使用者只需写 main() 内部。
     local pid="$1" body="$2"
     local code
     code=$(cat <<EOF
@@ -56,8 +55,8 @@ except Exception:
 status  = j.get("status", "")
 message = j.get("message", "")
 cerr    = j.get("compile_error", "").splitlines()[0][:60] if j.get("compile_error") else ""
-# Use a sentinel that will not appear in compile_error / message strings.
-print(f"{status}<<<>>>{message}<<<>>>{cerr}")
+# 使用一个不会出现在 compile_error / message 中的哨兵字符串。
+            print(f"{status}<<<>>>{message}<<<>>>{cerr}")
 '
 }
 
@@ -67,7 +66,7 @@ expect() {
     if [[ "$got_status" == "AC" ]]; then
         [[ "$label" == "AC" ]] && ok "AC" || bad "expected $label got AC ($got_msg)"
     else
-        # WA bucket covers CE/TLE/MLE/RE per SPEC §1.5
+        # 按 SPEC §1.5,WA 桶涵盖 CE/TLE/MLE/RE
         if [[ "$label" == "$got_msg" || ( "$label" != "AC" && "$got_status" == "WA" && "$got_msg" == *"$label"* ) ]]; then
             ok "$label"
         else
@@ -79,7 +78,7 @@ expect() {
 echo "=== Phase 6 E2E submission matrix against $BASE ==="
 echo
 
-# Pull the 3 seed problem ids by title.
+# 按标题拉出 3 道种子题的 id。
 P_AB=$(curl -s "$BASE/api/problems" | python3 -c '
 import json, sys
 for p in json.load(sys.stdin):
@@ -98,7 +97,7 @@ for p in json.load(sys.stdin):
 echo "A+B=$P_AB  Sum of N=$P_SUM  Maximum of N=$P_MAX"
 echo
 
-# Helper that calls submit and unpacks the sentinel-separated output.
+# 辅助函数:调用 submit 并解析以哨兵分隔的输出。
 run_case() {
     # run_case <note> <expected_label> <problem_id> <code_body>
     local note_text="$1" label="$2" pid="$3" body="$4"
@@ -146,10 +145,9 @@ run_case "AC: streaming Maximum of N" AC "$P_MAX" \
      }
      std::cout << best;'
 
-# --- TLE: O(N^2) pairwise compare on Maximum of N, N=200000 ---
-# Reads all numbers into a vector first (so the answer is still correct), then
-# does a quadratic pairwise comparison for the max. Both phases are cheap,
-# but the O(N^2) comparison (≈ 2*10^10 ops) blows past the 1 s time limit.
+# --- TLE:N 个数中的最大值,O(N²) 两两比较,N=200000 ---
+# 先把全部数读入 vector(这样答案仍然正确),再用 O(N²) 两两比较求最大。
+# 两阶段单独看都不算贵,但 O(N²) 比较(≈ 2×10^10 次操作)会爆掉 1 秒时限。
 run_case "TLE: O(N^2) pairwise compare on Maximum of N (N=200000)" \
     "Time Limit Exceeded" "$P_MAX" \
     'long long n; std::cin >> n;
@@ -161,7 +159,7 @@ run_case "TLE: O(N^2) pairwise compare on Maximum of N (N=200000)" \
              if (v[j] > best) best = v[j];
      std::cout << best;'
 
-# --- MLE: vector<int>(N) on Sum of N with N=8_000_000 and 16MB cap ---
+# --- MLE:N 个数的和用 vector<int>(N),N=8_000_000 且 16MB 上限 ---
 run_case "MLE: vector<int>(8000000) on 16MB cap" \
     "Memory Limit Exceeded" "$P_SUM" \
     'long long n; std::cin >> n;
@@ -171,7 +169,7 @@ run_case "MLE: vector<int>(8000000) on 16MB cap" \
      for (long long i = 0; i < n; ++i) s += v[i];
      std::cout << s;'
 
-# --- WA on Sum of N (off-by-one: skips last element) ---
+# --- WA:N 个数的和(off-by-one:跳过最后一个元素) ---
 run_case "WA: skips last element on Sum of N" "Wrong Answer" "$P_SUM" \
     'long long n; std::cin >> n;
      long long s = 0;

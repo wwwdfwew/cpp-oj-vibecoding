@@ -1,5 +1,5 @@
-// cpp-oj-vibecoding — main entry
-// SPEC §2.1 / §3 Phase 2.5
+// cpp-oj-vibecoding — 主入口
+// 对应 SPEC §2.1 / §3 Phase 2.5
 #include <httplib.h>
 
 #include <csignal>

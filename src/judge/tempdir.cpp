@@ -24,7 +24,7 @@ TempDir::TempDir() {
     }
     path_ = p;
     valid_ = true;
-    // Restrict permissions to owner only (0700).
+    // 将权限限制为仅所有者可访问(0700)。
     fs::permissions(path_, fs::perms::owner_all,
                     fs::perm_options::replace);
 }

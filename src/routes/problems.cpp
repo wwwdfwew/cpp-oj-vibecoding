@@ -54,10 +54,9 @@ void register_problem_routes(httplib::Server& srv, db::MySQLClient& db) {
                     JsonValue(util::JsonObject{{"error", JsonValue("not found")}}));
                 return;
             }
-            // Only the first few test cases are exposed to the user as
-            // "samples". Judge still runs all of them internally — this is
-            // just to avoid leaking hidden tests and to keep the response
-            // small when test cases have very large inputs.
+            // 仅把前若干个测试用例作为"样例"暴露给用户。
+            // 判题时仍会运行所有用例 —— 这样做的目的是既不泄露隐藏测试,
+            // 又能在用例输入很大时让响应体保持较小。
             auto crows = db.query(
                 "SELECT input, expected_output FROM test_cases "
                 "WHERE problem_id=" + std::to_string(id) +
