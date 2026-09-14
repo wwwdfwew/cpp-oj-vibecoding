@@ -1,0 +1,81 @@
+# =============================================================
+# cpp-oj-vibecoding .gitignore
+# =============================================================
+
+# ---- 构建产物 ----
+build/
+build-*/
+out/
+cmake-build-*/
+
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+
+# CMake / Make
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+Makefile
+compile_commands.json
+.cache/
+
+# ---- 第三方依赖(本地化时启用,目前用 CDN,留空避免误提交) ----
+web/vendor/
+node_modules/
+
+# ---- 判题运行时临时目录(本应在 /tmp,防御性也排除) ----
+/oj_*
+oj_*/
+
+# ---- Python(e2e / 种子脚本) ----
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- 编辑器 / IDE ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 日志 / 临时文件 ----
+*.log
+*.pid
+*.sock
+
+# ---- 凭据(避免误提交) ----
+.env
+.env.*
+*.pem
+*.key
+secrets.*
+
+# ---- AI 开发工具配置(不属于项目) ----
+.opencode/
+
+# ---- 用户生成的本地数据(可选) ----
+# 取消注释以忽略 admin 之外的本地账号/草稿
+# web/static/drafts/
