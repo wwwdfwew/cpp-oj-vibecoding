@@ -1,6 +1,6 @@
 # cpp-oj-vibecoding —— Web 自动化测试用例文档
 
-> 文档版本：v1.0
+> 文档版本：v1.1
 > 适用系统版本：SPEC.md v1.4
 > 测试对象：`http://193.112.29.233:8088`（生产部署）
 > 管理员账号：`admin / admin123`（种子脚本生成，详见 SPEC §2.3）
@@ -8,6 +8,8 @@
 
 本文档面向 **Web UI / 浏览器端** 自动化测试，覆盖 SPEC 文档中所有用户可见的功能点。测试以浏览器驱动（推荐 Playwright / Selenium WebDriver + Chromium）模拟真人操作，并对后端响应进行断言。
 **区别于** `TEST_CASES.md`（侧重服务端 API + 兼容性矩阵）以及 `TEST_REPORT.md`（侧重后端判题 / 沙箱 / 性能数据），本文档**只关注浏览器层**的真实交互与渲染。
+
+> **v1.1 变更**：测试用例**按页面 / 功能模块**作为一级分类（与 `test.md` 对齐），测试类型（SMK/PL/SR/...）作为二级分类。所有用例 ID（如 `SMK-01`、`SB-03`）保持不变，便于跨版本追溯。
 
 ---
 
@@ -58,7 +60,7 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 >
 > **session 级 fixture 模式（推荐）**：在 `conftest.py` 用 `autouse=True & scope="session"` 注册一次 `RUN_ID` 派生账号并 yield，整套件内 `AU-*` 共享同一身份，避免重复注册和顺序耦合。
 
-> 普通用户账号在测试结束后**通过清理脚本删除**（见 §14.3），不留垃圾数据。
+> 普通用户账号在测试结束后**通过清理脚本删除**（见 §10.3），不留垃圾数据。
 > 严禁用 admin 账号执行"普通用户权限不足"场景，避免污染 admin session。
 
 ### 0.4 关键定位器约定
@@ -89,61 +91,81 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 
 ## 1. 测试套件总览
 
+### 1.1 按页面 / 功能模块分类（一级）
+
 | 套件 ID | 名称 | 用例数 | 优先级 | 关联 SPEC |
 |---|---|---|---|---|
-| **SMK** | 冒烟与基础可用性 | 8 | P0 | §4.4 D-01..04 |
-| **PL** | 题库浏览（题列表 / 单题） | 12 | P0 | §1.3, §4.1 F-01..04 |
-| **SR** | 题目搜索 | 6 | P0 | §8.2, §4.1 F-12 |
-| **DF** | 难度筛选 | 5 | P0 | §8.1, §4.1 F-13..14 |
-| **ED** | 在线编辑 / CodeMirror | 6 | P0 | §2.6, §4.1 F-03 |
-| **DR** | 草稿持久化（localStorage） | 5 | P0 | §1.1, §4.1 F-04 |
-| **SB** | 提交判题（AC / WA / CE / TLE / MLE / RE） | 9 | P0 | §1.5, §4.1 F-05..07 |
-| **AU** | 普通用户认证（登录 / 注册 / 注销） | 9 | P0 | §1.2 |
-| **AD** | 管理员后台（登录 / CRUD） | 10 | P0 | §1.3, §4.1 F-08..10, F-15..16 |
-| **RT** | 路由切换与 SPA 行为 | 6 | P1 | §2.6, §4.1 F-11 |
-| **NF** | 非功能（性能 / 资源 / 安全） | 7 | P1 | §1.4, §4.2 N-01..08 |
-| **EX** | 边界与异常 | 10 | P0 | §4.3 E-01..10 |
-| **合计** |  | **121** |  |  |
+| **HOME** | 首页 / 题库列表 | 20 | P0 | §1.3, §4.1, §8 |
+| **DETAIL** | 单题详情页 | 40 | P0 | §1.5, §2.6, §4.1 |
+| **AUTH** | 登录注册 | 9 | P0 | §1.2 |
+| **ADMIN_LOGIN** | 管理员登录页 | 2 | P0 | §1.3 |
+| **ADMIN_LIST** | 管理员后台 - 题库列表 | 9 | P0 | §1.3, §4.1 F-08..10 |
+| **ADMIN_CREATE** | 管理员后台 - 新建题目 | 6 | P0 | §1.3, §4.1 F-15..16 |
+| **ROUTING** | 路由切换与 SPA 行为 | 6 | P1 | §2.6, §4.1 F-11 |
+| **SESSION** | 会话管理 | 1 | P1 | §4.2 N-08 |
+| **合计** |  | **93** |  |  |
+
+### 1.2 按测试类型分类（二级，交叉矩阵）
+
+| 测试类型 | HOME | DETAIL | AUTH | ADMIN_LOGIN | ADMIN_LIST | ADMIN_CREATE | ROUTING | SESSION | 合计 |
+|---|---|---|---|---|---|---|---|---|---|
+| **SMK** 冒烟与基础可用性 | 4 | 1 | 0 | 1 | 1 | 1 | 0 | 0 | **8** |
+| **PL** 题库浏览 | 4 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | **12** |
+| **SR** 题目搜索 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **6** |
+| **DF** 难度筛选 | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **5** |
+| **ED** 在线编辑 | 0 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | **6** |
+| **DR** 草稿持久化 | 0 | 5 | 0 | 0 | 0 | 0 | 0 | 0 | **5** |
+| **SB** 提交判题 | 0 | 9 | 0 | 0 | 0 | 0 | 0 | 0 | **9** |
+| **AU** 普通用户认证 | 0 | 0 | 9 | 0 | 0 | 0 | 0 | 0 | **9** |
+| **AD** 管理员后台 | 0 | 0 | 0 | 1 | 5 | 4 | 0 | 0 | **10** |
+| **RT** 路由切换 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | **6** |
+| **NF** 非功能 | 1 | 5 | 0 | 0 | 0 | 0 | 0 | 1 | **7** |
+| **EX** 边界与异常 | 0 | 6 | 0 | 0 | 3 | 1 | 0 | 0 | **10** |
+| **合计** | **20** | **40** | **9** | **2** | **9** | **6** | **6** | **1** | **93** |
+
+### 1.3 测试类型代号说明
+
+| 代号 | 全称 | 用途 |
+|---|---|---|
+| **SMK** | Smoke | 冒烟与基础可用性（进站、静态资源、SPA fallback） |
+| **PL** | Problem List | 题库浏览（题列表 + 单题详情元数据） |
+| **SR** | Search | 题目搜索 |
+| **DF** | Difficulty Filter | 难度筛选 |
+| **ED** | Editor | 在线编辑 / CodeMirror |
+| **DR** | Draft | 草稿持久化（localStorage） |
+| **SB** | Submit | 提交判题（AC / WA / CE / TLE / MLE / RE） |
+| **AU** | Auth (User) | 普通用户认证（登录 / 注册 / 注销） |
+| **AD** | Admin | 管理员后台（登录 / CRUD） |
+| **RT** | Routing | 路由切换与 SPA 行为 |
+| **NF** | Non-Functional | 非功能（性能 / 资源 / 安全） |
+| **EX** | Exception | 边界与异常 |
 
 ---
 
-## 2. 冒烟与基础可用性（SMK）
+## 2. 首页 / 题库列表（Home / Problem List）
 
-> 目标：进站、静态资源、SPA fallback 都正常。每个用例都应通过，作为后续套件的前置门。
+> 对应路由：`/`（SPA fallback 后 `index.html` 渲染题列表）
+> 套件 ID：**HOME**（20 用例）
+
+### 2.1 冒烟与基础可用性（SMK）
 
 | ID | 用例 | 前置 | 步骤 | 期望 |
 |---|---|---|---|---|
 | SMK-01 | 入口页加载 | — | 浏览器打开 `http://193.112.29.233:8088/` | HTTP 200；`<title>` 含 "CPP-OJ"；`<main id="app">` 渲染题列表卡片 `.problem-card`；底部加载 CodeMirror 模块无 console error |
-| SMK-02 | 直链刷新单题 | 题库存在任意题 id=X | 直接打开 `http://193.112.29.233:8088/problems/X` | 200；SPA fallback 把任意 path 都返回 `index.html`；前端按 `/problems/X` 路由渲染单题详情，元数据 chip 完整 |
-| SMK-03 | 直链刷新后台列表 | 已登录 admin | 浏览器打开 `/admin` | 渲染 `.admin-table`，行数 == `/api/problems` 返回条数 |
 | SMK-04 | 静态资源 200 | — | 并行请求 `/static/style.css`、`/static/app.js`、`/static/pages/problem-list.js`、`/static/pages/problem-detail.js`、`/static/pages/admin/dashboard.js`、`/static/pages/admin/problem-form.js` | 全部 200，Content-Type 正确 |
 | SMK-05 | API 健康检查 | — | `GET /api/problems` | 200；JSON 数组；元素含 `id/title/difficulty/time_limit_ms/memory_limit_mb` |
 | SMK-06 | 不存在的 API 路径 | — | `GET /api/nope` | 返回 404 或 200 + JSON（不限具体 body 形态，但不能 500） |
-| SMK-07 | 错误码：未登录访问 admin API | 干净 context | `POST /api/admin/problems` 不带 cookie | 401；body 含 `error` 字段 |
-| SMK-08 | 错误码：admin 错密码 | — | `POST /api/admin/login {username:"admin",password:"wrong"}` | 401；body 含 `error` |
 
----
-
-## 3. 题库浏览（PL）
+### 2.2 题库浏览（PL）
 
 | ID | 用例 | 前置 | 步骤 | 期望 |
 |---|---|---|---|---|
 | PL-01 | 题列表默认加载 | — | 打开 `/`，等待 `.problem-card` 出现 | 每张卡片显示：`#NNN` 编号、标题、`difficulty` 徽标、时间 ms、内存 MB；无白屏 |
 | PL-02 | 题列表计数与 hero stats 一致 | — | 读 `#stat-problems` 文本，与 `GET /api/problems` 数组长度对比 | 一致 |
 | PL-03 | 题列表为空时占位 | 题库 0 题（管理员先全删） | 打开 `/` | 显示 "还没有题目" + 提示文案；不抛错 |
-| PL-04 | 单题详情加载 | 题 id=X | 点卡片 `/problems/X` | 标题渲染到 `#pd-title-text`；元数据含 `#NNN / 难度 / 时间 / 内存`；题干、输入输出格式、样例至少一组全部渲染 |
-| PL-05 | 单题默认模板填充 | 题 id=X，未登录 | 进入 `/problems/X` | CodeMirror 编辑器初始化；内容为 `TEMPLATE`（含 `bits/stdc++.h` + `int main(){...}`） |
-| PL-06 | 单题样例渲染多组 | 题有 ≥2 个 samples | 进入 `/problems/X` | `.sample-item` 数 ≥ 2；每个含 "输入·样例 N" 与 "期望输出·样例 N" 标签 |
-| PL-07 | 单题 XSS 转义 | 题干含 `<script>alert(1)</script>` 或 `<img onerror>` | 进入 `/problems/X` | 文本原样显示，未执行脚本；DevTools 检查 `<script>` 标签未插入 |
-| PL-08 | 不存在题目 | 题 id=999999 | 进入 `/problems/999999` | 渲染 "题目不存在"（来自 `GET /api/problems/999999` 抛 404）；不白屏 |
-| PL-09 | 无效路径 | — | 进入 `/problems/abc` | 显示 "无效的题目编号" |
-| PL-10 | 单题 meta 与 difficulty 一致 | 后台设 difficulty=hard | 进入 `/problems/X`，观察 `.diff-badge` | class 含 `diff-hard`，文字 "困难" |
-| PL-11 | 单题导航返回 | 题 id=X | 点 `返回题库` 按钮 | URL 变 `/`；题列表正常渲染 |
 | PL-12 | 题列表卡片点击进入 | — | 点任一 `.problem-card` | URL 切到 `/problems/<id>`；无白屏过渡 |
 
----
-
-## 4. 题目搜索（SR）
+### 2.3 题目搜索（SR）
 
 > 关联 SPEC §8.2、F-12：120ms 防抖，对**已拉取的题列表**做本地过滤（不再发请求）。
 
@@ -156,9 +178,7 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 | SR-05 | 无命中结果 | 题库 4 题 | 输入 `ZZZZ_NO_HIT` | 显示 "没有匹配的题目" |
 | SR-06 | 防抖与即时过滤 | — | 监听 `/api/problems` 请求；连续输入 "AB"、"ABC"、"ABCD" | 1.5s 内只触发 0 次网络请求（前端纯前端过滤） |
 
----
-
-## 5. 难度筛选（DF）
+### 2.4 难度筛选（DF）
 
 > 关联 SPEC §8.1、F-13..16。
 
@@ -170,9 +190,39 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 | DF-04 | 切到困难 | 题库有 hard | 点 `[data-diff="hard"]` | 列表只剩 hard；计数正确 |
 | DF-05 | 搜索 + 难度叠加 | 题库既有 easy "A+B"，又有 medium "BFS" | 切到 easy；再在搜索框输入 "BFS" | 结果 0；切回 easy+搜索 "A+B" → 命中 1 |
 
+### 2.5 非功能（NF）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| NF-01 | 首屏可交互时间 | — | 用 Playwright `performance.timing` / `LargestContentfulPaint` | LCP < 2.5s（服务端与本地同网段） |
+
 ---
 
-## 6. 在线编辑 / CodeMirror（ED）
+## 3. 单题详情页（Problem Detail）
+
+> 对应路由：`/problems/<id>`（SPA fallback 后由前端按路由渲染）
+> 套件 ID：**DETAIL**（40 用例）
+
+### 3.1 冒烟与基础可用性（SMK）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| SMK-02 | 直链刷新单题 | 题库存在任意题 id=X | 直接打开 `http://193.112.29.233:8088/problems/X` | 200；SPA fallback 把任意 path 都返回 `index.html`；前端按 `/problems/X` 路由渲染单题详情，元数据 chip 完整 |
+
+### 3.2 题库浏览（PL）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| PL-04 | 单题详情加载 | 题 id=X | 点卡片 `/problems/X` | 标题渲染到 `#pd-title-text`；元数据含 `#NNN / 难度 / 时间 / 内存`；题干、输入输出格式、样例至少一组全部渲染 |
+| PL-05 | 单题默认模板填充 | 题 id=X，未登录 | 进入 `/problems/X` | CodeMirror 编辑器初始化；内容为 `TEMPLATE`（含 `bits/stdc++.h` + `int main(){...}`） |
+| PL-06 | 单题样例渲染多组 | 题有 ≥2 个 samples | 进入 `/problems/X` | `.sample-item` 数 ≥ 2；每个含 "输入·样例 N" 与 "期望输出·样例 N" 标签 |
+| PL-07 | 单题 XSS 转义 | 题干含 `<script>alert(1)</script>` 或 `<img onerror>` | 进入 `/problems/X` | 文本原样显示，未执行脚本；DevTools 检查 `<script>` 标签未插入 |
+| PL-08 | 不存在题目 | 题 id=999999 | 进入 `/problems/999999` | 渲染 "题目不存在"（来自 `GET /api/problems/999999` 抛 404）；不白屏 |
+| PL-09 | 无效路径 | — | 进入 `/problems/abc` | 显示 "无效的题目编号" |
+| PL-10 | 单题 meta 与 difficulty 一致 | 后台设 difficulty=hard | 进入 `/problems/X`，观察 `.diff-badge` | class 含 `diff-hard`，文字 "困难" |
+| PL-11 | 单题导航返回 | 题 id=X | 点 `返回题库` 按钮 | URL 变 `/`；题列表正常渲染 |
+
+### 3.3 在线编辑 / CodeMirror（ED）
 
 > 关联 SPEC §2.6、F-03。
 
@@ -185,9 +235,7 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 | ED-05 | 重置回默认 | ED-02 后 | 点 `#pd-reset` | 编辑器内容 == `TEMPLATE`；`#pd-draft-info` 重新显示 |
 | ED-06 | 清空草稿 | 已保存草稿 | 点 `#pd-clear-draft` | localStorage 中 `draft:problem:<id>` 被移除；`#pd-draft-info` 显示 "草稿:—" |
 
----
-
-## 7. 草稿持久化（DR）
+### 3.4 草稿持久化（DR）
 
 > 关联 SPEC §1.1、F-04。
 
@@ -199,9 +247,7 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 | DR-04 | 草稿空则默认模板 | 题 id=X | 清空 localStorage 中 `draft:problem:X`，刷新 | 编辑器 == `TEMPLATE` |
 | DR-05 | 草稿超限降级 | — | 用 JS 注入一段 > 5MB 字符串到 `draft:problem:X` | 刷新页面不抛 fatal；编辑框显示该内容；如超 localStorage 配额应降级而非崩溃 |
 
----
-
-## 8. 提交判题（SB）
+### 3.5 提交判题（SB）
 
 > 关联 SPEC §1.5、F-05..07、N-03..05。
 > **前置**：先以普通用户 `auto_user_*` 登录；选一道 **A+B** 类的简单题，预期用例：输入 `1 2` → 输出 `3`。
@@ -219,14 +265,42 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 | SB-08 | 未登录提交 | 干净 context | 打开单题 → 点 `#pd-submit`（应被 `disabled`） | 按钮不可点；或被前端拦截弹出 `#auth-modal` |
 | SB-09 | 提交中按钮禁用 | — | 提交后立刻重试点 `#pd-submit` | 按钮变 `判题中…` 且 `disabled=true`；判题完成恢复 |
 
+### 3.6 边界与异常（EX）
+
+> 关联 SPEC §4.3 E-01..06。
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| EX-01 | 提交空 code | — | `POST /api/submit {problem_id, code:""}` | 400 |
+| EX-02 | 提交超长 code | — | `POST /api/submit {problem_id, code: <70KB>}` | 413 |
+| EX-03 | 提交不存在 problem_id | — | `POST /api/submit {problem_id: 999999, code}` | 404 |
+| EX-04 | system("rm -rf /") | — | 提交 `if (system("rm -rf /tmp/oj_test 2>/dev/null")) {}` | 服务侧 tmp 残留无变化；UI 拿到 WA |
+| EX-05 | 二进制 NUL | 题用例含 NUL 字节 | 提交正确解 | AC（文本模式读写不挂） |
+| EX-06 | 末尾多空行 | 题期望 `3\n\n\n` | 提交输出 `3\n\n` | AC |
+
+### 3.7 非功能（NF）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| NF-02 | 单次提交 P95 | — | 提交正确解 20 次，记录端到端耗时 | P95 ≤ 5000ms（SPEC §4.2 N-01） |
+| NF-03 | 并发提交串行化 | — | 打开两个标签，都点提交 | 服务端日志显示第二个等第一个完成；浏览器侧均得到正确结果 |
+| NF-04 | while(1) 不会卡死服务 | — | 提交死循环代码 | 在 TL 内被 kill；UI 拿到 WA "Time Limit Exceeded"；服务仍可响应其它请求 |
+| NF-05 | 输出超 64MB → 截断不崩 | 题 special：期望输出固定 32MB | 提交代码打印 100MB | 服务不挂；UI 拿到结果（WA 或按预期） |
+| NF-07 | 草稿写入频率 | — | 1s 内连续输入 50 字符 | localStorage 写入节流（每次 docChanged 写一次，可接受） |
+
 ---
 
-## 9. 普通用户认证（AU）
+## 4. 登录注册（Login / Register）
+
+> 对应：导航栏 `#nav-login` / `#nav-register` 弹出的 `#auth-modal`；提交走 `/api/register` / `/api/login`。
+> 套件 ID：**AUTH**（9 用例）
+
+### 4.1 普通用户认证（AU）
 
 > **账号管理约定**：本套件所有用例共用一组由 session fixture 提前注册的账号（见 §0.3）：
 > - `USER_MAIN` = `auto_user_<RUN_ID>`（用于 AU-01 注册成功 / AU-06..09 登录登出）
 > - `USER_DUP`  = `auto_user_<RUN_ID>_dup`（**先注册一次**再在 AU-02 中再次提交触发冲突）
-> - `USER_PERM` = `auto_user_<RUN_ID>_perm`（用于 §10 AD-02 "普通用户访问后台被拒"）
+> - `USER_PERM` = `auto_user_<RUN_ID>_perm`（用于 §6 AD-02 "普通用户访问后台被拒"）
 >
 > **禁止**每个用例自己即时注册——会导致：① 并发跑时撞名；② AU-02 失去"目标账号"；③ 失败用例重跑时残留账号影响断言。
 
@@ -249,24 +323,92 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 
 ---
 
-## 10. 管理员后台（AD）
+## 5. 管理员登录页（Admin Login）
+
+> 对应路由：`/admin/login`
+> 套件 ID：**ADMIN_LOGIN**（2 用例）
+
+### 5.1 冒烟与基础可用性（SMK）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| SMK-08 | 错误码：admin 错密码 | — | `POST /api/admin/login {username:"admin",password:"wrong"}` | 401；body 含 `error` |
+
+### 5.2 管理员后台（AD）
 
 | ID | 用例 | 前置 | 步骤 | 期望 |
 |---|---|---|---|---|
 | AD-01 | 管理员登录成功 | — | `/admin/login` → 模态框填 `admin/admin123` | 登录后自动跳 `/admin`，渲染 `.admin-table`；导航出现 "管理后台" 链接 |
+
+---
+
+## 6. 管理员后台 - 题库列表（Admin Panel - List）
+
+> 对应路由：`/admin`（列表页）
+> 套件 ID：**ADMIN_LIST**（9 用例）
+
+### 6.1 冒烟与基础可用性（SMK）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| SMK-03 | 直链刷新后台列表 | 已登录 admin | 浏览器打开 `/admin` | 渲染 `.admin-table`，行数 == `/api/problems` 返回条数 |
+
+### 6.2 管理员后台（AD）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
 | AD-02 | 普通用户登录后台被拒 | `USER_PERM` 已登录 | 访问 `/admin` | 跳 `/admin/login`；显示 "当前账号不是管理员"；不渲染 `.admin-table` |
 | AD-03 | 后台列表含难度列 | 题库有不同难度 | 进 `/admin` | 表格列含 `编号 / 标题 / 难度 / 时间 / 内存 / 操作`；难度列展示对应 badge |
-| AD-04 | 新建题目成功 | admin | 点"新建题目" → 填标题 "AUTOTEST_<ts>" / 难度=easy / TL=1000 / ML=128 / 题干 / 输入输出 / 1 组用例 `1 2\n3` → 提交 | 创建成功；自动跳 `/problems/<new_id>`；单题详情正常渲染；题列表能搜到 |
-| AD-05 | 新建题目：缺标题 | — | 留空标题 | 不发请求，前端 `.form-error` 显示 "标题和题干不能为空" |
-| AD-06 | 新建题目：动态增删用例 | — | 点 `#add-tc` 多次；删到 1 个 | 删除按钮禁用；继续点 `add-tc` 可恢复 |
-| AD-07 | 新建题目：默认难度 medium | — | 打开 `/admin/problems/new` | `#f-diff` 默认值 `medium` |
 | AD-08 | 删除题目：确认弹窗 | 选中 AD-04 新建的题 | 点该行 `#data-del` | 弹出 "确认删除题目?" 模态框；点 "取消" → 关闭且未删 |
 | AD-09 | 删除题目：确认执行 | AD-08 | 点 "删除" | 请求 200；表格行消失；普通用户侧题列表与 `/problems/<id>` 404 |
 | AD-10 | 两次删除同题 | AD-09 后 | 再点同 id 删除 | 后端 404；`alert('删除失败:…')` 触发 |
 
+### 6.3 边界与异常（EX）
+
+> 关联 SPEC §4.3 E-08..10。
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| EX-08 | admin API 未登录 | 干净 context | `DELETE /api/admin/problems/1` | 401 |
+| EX-09 | admin API 普通用户 | 普通用户登录 | 同上 | 403 |
+| EX-10 | 同一 ID 二次删除 | 题已删 | 再发 `DELETE /api/admin/problems/<id>` | 404 |
+
 ---
 
-## 11. 路由切换与 SPA 行为（RT）
+## 7. 管理员后台 - 新建题目（Admin Panel - Create）
+
+> 对应路由：`/admin/problems/new`
+> 套件 ID：**ADMIN_CREATE**（6 用例）
+
+### 7.1 冒烟与基础可用性（SMK）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| SMK-07 | 错误码：未登录访问 admin API | 干净 context | `POST /api/admin/problems` 不带 cookie | 401；body 含 `error` 字段 |
+
+### 7.2 管理员后台（AD）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| AD-04 | 新建题目成功 | admin | 点"新建题目" → 填标题 "AUTOTEST_<ts>" / 难度=easy / TL=1000 / ML=128 / 题干 / 输入输出 / 1 组用例 `1 2\n3` → 提交 | 创建成功；自动跳 `/problems/<new_id>`；单题详情正常渲染；题列表能搜到 |
+| AD-05 | 新建题目：缺标题 | — | 留空标题 | 不发请求，前端 `.form-error` 显示 "标题和题干不能为空" |
+| AD-06 | 新建题目：动态增删用例 | — | 点 `#add-tc` 多次；删到 1 个 | 删除按钮禁用；继续点 `add-tc` 可恢复 |
+| AD-07 | 新建题目：默认难度 medium | — | 打开 `/admin/problems/new` | `#f-diff` 默认值 `medium` |
+
+### 7.3 边界与异常（EX）
+
+| ID | 用例 | 前置 | 步骤 | 期望 |
+|---|---|---|---|---|
+| EX-07 | time_limit=0 拒绝 | admin | `POST /api/admin/problems` 带 `time_limit_ms:0` | 400 |
+
+---
+
+## 8. 路由切换与 SPA 行为（Routing）
+
+> 覆盖所有页面之间的导航、刷新、前进/后退、直链、深链接。
+> 套件 ID：**ROUTING**（6 用例）
+
+### 8.1 路由切换与 SPA 行为（RT）
 
 | ID | 用例 | 前置 | 步骤 | 期望 |
 |---|---|---|---|---|
@@ -279,42 +421,22 @@ RUN_ID = uuid.uuid4().hex[:8]            # 例: "3f7a91c2"
 
 ---
 
-## 12. 非功能（NF）
+## 9. 会话管理（Session）
+
+> 覆盖 session 生命周期中的边界情况（过期、清理）。
+> 套件 ID：**SESSION**（1 用例）
+
+### 9.1 非功能（NF）
 
 | ID | 用例 | 前置 | 步骤 | 期望 |
 |---|---|---|---|---|
-| NF-01 | 首屏可交互时间 | — | 用 Playwright `performance.timing` / `LargestContentfulPaint` | LCP < 2.5s（服务端与本地同网段） |
-| NF-02 | 单次提交 P95 | — | 提交正确解 20 次，记录端到端耗时 | P95 ≤ 5000ms（SPEC §4.2 N-01） |
-| NF-03 | 并发提交串行化 | — | 打开两个标签，都点提交 | 服务端日志显示第二个等第一个完成；浏览器侧均得到正确结果 |
-| NF-04 | while(1) 不会卡死服务 | — | 提交死循环代码 | 在 TL 内被 kill；UI 拿到 WA "Time Limit Exceeded"；服务仍可响应其它请求 |
-| NF-05 | 输出超 64MB → 截断不崩 | 题 special：期望输出固定 32MB | 提交代码打印 100MB | 服务不挂；UI 拿到结果（WA 或按预期） |
 | NF-06 | Session 过期 | — | 把 session `expires_at` 改为过去时刻；admin 调 `/api/admin/problems` | 401；前端跳 `/admin/login` |
-| NF-07 | 草稿写入频率 | — | 1s 内连续输入 50 字符 | localStorage 写入节流（每次 docChanged 写一次，可接受） |
 
 ---
 
-## 13. 边界与异常（EX）
+## 10. 测试数据准备与清理
 
-> 关联 SPEC §4.3 E-01..10。
-
-| ID | 用例 | 前置 | 步骤 | 期望 |
-|---|---|---|---|---|
-| EX-01 | 提交空 code | — | `POST /api/submit {problem_id, code:""}` | 400 |
-| EX-02 | 提交超长 code | — | `POST /api/submit {problem_id, code: <70KB>}` | 413 |
-| EX-03 | 提交不存在 problem_id | — | `POST /api/submit {problem_id: 999999, code}` | 404 |
-| EX-04 | system("rm -rf /") | — | 提交 `if (system("rm -rf /tmp/oj_test 2>/dev/null")) {}` | 服务侧 tmp 残留无变化；UI 拿到 WA |
-| EX-05 | 二进制 NUL | 题用例含 NUL 字节 | 提交正确解 | AC（文本模式读写不挂） |
-| EX-06 | 末尾多空行 | 题期望 `3\n\n\n` | 提交输出 `3\n\n` | AC |
-| EX-07 | time_limit=0 拒绝 | admin | `POST /api/admin/problems` 带 `time_limit_ms:0` | 400 |
-| EX-08 | admin API 未登录 | 干净 context | `DELETE /api/admin/problems/1` | 401 |
-| EX-09 | admin API 普通用户 | 普通用户登录 | 同上 | 403 |
-| EX-10 | 同一 ID 二次删除 | 题已删 | 再发 `DELETE /api/admin/problems/<id>` | 404 |
-
----
-
-## 14. 测试数据准备与清理
-
-### 14.1 测试前
+### 10.1 测试前
 
 ```bash
 # 1) 确认服务可达
@@ -331,7 +453,7 @@ curl -fsS http://193.112.29.233:8088/api/problems | jq 'length'
 #                          input:  "abc" output: "cba"
 ```
 
-### 14.2 测试中
+### 10.2 测试中
 
 - **每个测试文件用独立的 `browser.new_context()`** 隔离 cookie / localStorage。
 - **不要每个用例单独注册账号**——所有 `auto_*` 账号**只在 session 开始时由 fixture 一次性注册**，整会话复用。
@@ -340,7 +462,7 @@ curl -fsS http://193.112.29.233:8088/api/problems | jq 'length'
 - 新建的题标题前缀统一为 `AUTOTEST_<RUN_ID>_<SEQ>`，便于清理。
 - `pytest -n 4` 并发跑时，每个 worker 应有**自己的 `RUN_ID`**（从 worker id 派生，如 `f"{os.getpid()}_{uuid4().hex[:6]}"`），避免 worker 间撞名。
 
-### 14.3 测试后
+### 10.3 测试后
 
 > **必须同时清理题与用户**，否则 `auto_user_*` 长期残留会污染用户表与 `/api/me` 行为。
 
@@ -373,16 +495,16 @@ done
 
 ---
 
-## 15. 框架与代码示例
+## 11. 框架与代码示例
 
-### 15.1 推荐栈
+### 11.1 推荐栈
 
 | 选项 | 优点 |
 |---|---|
 | **Playwright (Python / Node)** | 自带等待、自动重试、原生多 context 隔离、trace viewer 调试；首选 |
 | Selenium 4 + pytest | 团队熟悉、生态成熟；等待需用 `expected_conditions` |
 
-### 15.2 Playwright (Python) 示例
+### 11.2 Playwright (Python) 示例
 
 ```python
 import os, uuid, requests
@@ -416,7 +538,7 @@ def seed_users():
     for u in (USER_MAIN, USER_DUP, USER_PERM):
         _reg(u)
     yield
-    # teardown:测试结束后可在此处发起清理(若 §14.3 提供了 admin 删除用户接口)
+    # teardown:测试结束后可在此处发起清理(若 §10.3 提供了 admin 删除用户接口)
     # for u in (USER_MAIN, USER_DUP, USER_PERM): delete_user_as_admin(u)
 
 
@@ -498,7 +620,7 @@ def test_sb_01_ac(user_ctx):
 >
 > 由于 CodeMirror 实例未挂到 `window`，上面清空逻辑用键盘 `Ctrl+A` + `Delete`，或生产代码里给 `cmView` 暴露一个 `window.__cm = cmView` 后用 `__cm.dispatch(...)`。
 
-### 15.3 CI 集成建议
+### 11.3 CI 集成建议
 
 ```yaml
 # .github/workflows/web-e2e.yml
@@ -523,20 +645,20 @@ jobs:
 
 ---
 
-## 16. 风险与注意事项
+## 12. 风险与注意事项
 
 1. **账号撞名 → AU-02 假阳性**：见 §0.3，**严禁** `int(time.time())` 等秒级精度拼接；用 `pid + uuid4().hex[:8]`。所有 `auto_*` 账号必须在 session 级 fixture 一次性注册，整套件共享。
 2. **CodeMirror CDN**：测试环境必须能 `fetch https://esm.sh/@codemirror/*`，否则编辑器永远停在"加载中…"，会拖累大量用例超时。必要时把 esm.sh 资源 mirror 到内网或本地化到 `/static/vendor/`。
 3. **同会话串行判题**：SPEC §2.5 明确 `std::mutex g_judge_mu` 串行化，**多浏览器并发提交**会导致彼此阻塞。NF-02/NF-03 不要并行跑 4 个以上浏览器标签，避免服务卡死。
 4. **/tmp 残留**：服务在每次提交后清理 `/tmp/oj_*`，但若服务异常退出可能残留。NF 套件跑完后建议 `ls /tmp/oj_*` 校验为空。
-5. **并发测试数据清理**：所有 `AUTOTEST_*` 题清理动作**必须**用 admin 登录态执行；普通用户清理会被自家 pipeline 401。题与用户**都要清**，见 §14.3。
+5. **并发测试数据清理**：所有 `AUTOTEST_*` 题清理动作**必须**用 admin 登录态执行；普通用户清理会被自家 pipeline 401。题与用户**都要清**，见 §10.3。
 6. **sessionStorage 与 localStorage**：本系统两者职责不同——`Auth` 用 `sessionStorage` 缓存当前会话（关闭标签即丢），`Drafts` 用 `localStorage` 持久化草稿。AU-08 退出登录只清 sessionStorage，DR-02 验证草稿仍存——这恰好是两个存储的差异点。
 7. **登录模态框 vs 独立登录页**：SPEC §2.6 提到 `/admin/login` 是独立路径，但实现上统一走 `#auth-modal`（详见 `web/static/pages/admin/login.js`）；UI 自动化直接监听模态框出现/关闭即可，不必校验 URL。
 8. **SPA fallback**：服务把任何非 `/api/*`、`/static/*` 的 GET 都 fallback 到 `index.html`（详见 `src/routes/static_files.cpp:73`）。这是 RT 系列用例能正常直链打开 `/problems/X`、`/admin` 的前提。
 
 ---
 
-## 17. 验收门槛
+## 13. 验收门槛
 
 | 阶段 | 门槛 |
 |---|---|
@@ -548,5 +670,5 @@ jobs:
 
 ---
 
-**文档版本**：v1.0
+**文档版本**：v1.1
 **最后更新**：2026-10-08
